@@ -16,9 +16,10 @@ for linha in arquivo.itertuples():
     response = requests.get(url)
     content = response.content
     site = BeautifulSoup(content, 'html.parser')
-
-    bloco_descricao = site.find('div', class_='mar-btm bg-gray-light pad-all')
-    tag_a = bloco_descricao.find('a')
+    
+    top_main = site.find('div', class_="jogo-top-main")
+    span = top_main.find_all('span', class_='info-span text-sm')
+    tag_a = span[2].find('a')
 
     href = tag_a.get('href')
     
