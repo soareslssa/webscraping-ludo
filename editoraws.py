@@ -6,7 +6,7 @@ import re
 # Crie uma lista para armazenar as linhas do DataFrame
 data = []
 
-arquivo = pd.read_csv('boardgames.csv', sep=';', header=0, nrows=10)
+arquivo = pd.read_csv('boardgames.csv', sep=';', header=0, nrows=1000)
 
 contador = 0
 for linha in arquivo.itertuples():
@@ -21,14 +21,14 @@ for linha in arquivo.itertuples():
     span = top_main.find_all('span', class_='info-span text-sm')
     tag_a = span[2].find('a')
 
-    href = tag_a.get('href')
+    href = tag_a.get('href') if tag_a else None
     
     # Verificar se há uma correspondência antes de tentar acessar grupos
-    id_match = re.search(r'/editora/(\d+)/', href)
+    id_match = re.search(r'/editora/(\d+)/', href) if href else None
     editora_id = id_match.group(1) if id_match else None
 
-    editora_name = tag_a.text
-    editora_link = tag_a.get('href')
+    editora_name = tag_a.text if tag_a else None
+    editora_link = href
 
     descrica_body = site.find('div', id='bloco-descricao-sm')
     p_descricao = descrica_body.find('p')
