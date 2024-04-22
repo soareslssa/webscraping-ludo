@@ -4,68 +4,74 @@ from bs4 import BeautifulSoup
 import re
 
 from alive_progress import alive_bar
-import time
+
+import mysql.connector 
 
 # Crie uma lista para armazenar as linhas do DataFrame
 data = []
 
-# linhas Editoras
-editorasData = []
+try:
+    connection = mysql.connector.connect(
+        host='localhost',
+        database='lends_club_api',
+        user='sail',
+        password='password')
 
-arquivo = pd.read_csv('boardgames.csv', sep=';', header=0, nrows=10)
+    sql_select_Query = "select * from ludopedias where editora is null"
 
-row_count = len(arquivo)
+    cursor = connection.cursor()
+    cursor.execute(sql_select_Query)
 
-contador = 0
-with alive_bar(row_count) as bar:
-    for linha in arquivo.itertuples():
+    rows = cursor.fetchall()
+    row_count = cursor.rowcount   
 
-        url = linha.link_ludopedia
+    update_query = """UPDATE ludopedias SET editora = %s WHERE id_jogo = %s"""
 
-        response = requests.get(url)
-        content = response.content
-        site = BeautifulSoup(content, 'html.parser')
-        
-        top_main = site.find('div', class_="jogo-top-main")
-        span = top_main.find_all('span', class_='info-span text-sm')
-        tag_a = span[2].find('a')
+    with alive_bar(row_count) as bar:
+        for linha in rows:
 
-        href = tag_a.get('href') if tag_a else None
-        
-        # Verificar se há uma correspondência antes de tentar acessar grupos
-        id_match = re.search(r'/editora/(\d+)/', href) if href else None
-        editora_id = id_match.group(1) if id_match else None
+            url = linha[5]
 
-        editora_name = tag_a.text if tag_a else None
-        editora_link = href
+            response = requests.get(url)
+            content = response.content
+            site = BeautifulSoup(content, 'html.parser')
+            
+            top_main = site.find('div', class_="jogo-top-main")
 
-        descrica_body = site.find('div', id='bloco-descricao-sm')
-        p_descricao = descrica_body.find('p')
+            if(top_main == None):
+                continue
 
-        descricao = p_descricao
+            span = top_main.find_all('span', class_='info-span text-sm')                  
+     
+            if(len(span[2]) == 0):
+                continue
 
-        # Adicionar dados à lista
-        data.append({'id_ludopedia': linha.id_ludopedia,
-                    # 'name': linha.name,
-                    'id_editora': editora_id,
-                    #  'publisher': editora_name,
-                    #  'editora_link': editora_link,
-                    'description': descricao})
-        
-        editorasData.append(
-            {'id': editora_id, 'name': editora_name, 'link': editora_link}
-            )
-        
-        bar()
+            tag_a = span[2].find('a')
+
+            href = tag_a.get('href') if tag_a else None
+            
+            # Verificar se há uma correspondência antes de tentar acessar grupos
+            # id_match = re.search(r'/editora/(\d+)/', href) if href else None
+            # editora_id = id_match.group(1) if id_match else None
+
+            editora_name = tag_a.text if tag_a else None
+            editora_link = href
+
+            record = (editora_name, linha[0])
+            cursor.execute(update_query, record)
+
+            connection.commit()
+            
+            bar()
+
+except mysql.connector.Error as e:
+    print("Error reading data from MySQL table", e)
+finally:
+    if connection.is_connected():
+        connection.close()
+        cursor.close()
+        print("MySQL connection is closed")
+
+
+
     
-
-
-# Criar DataFrame a partir da lista
-dfDescription = pd.DataFrame(data)
-dfEditoras = pd.DataFrame(editorasData)
-
-# Exportar DataFrame para CSV
-dfEditoras.to_csv('editoras.csv', index=False, sep=';')
-
-# Exportar DataFrame para CSV
-dfDescription.to_csv('descriptions.csv', index=False, sep=';')
