@@ -1,10 +1,6 @@
 import mysql.connector
 import requests
-import pandas as pd
 from bs4 import BeautifulSoup
-import re
-from collections.abc import Mapping
-
 from alive_progress import alive_bar
 
 
@@ -28,10 +24,10 @@ def get_components(link):
 try: 
     connection = mysql.connector.connect(
         host='localhost',
-        database='laravel',
-        user='root')
+        database='lends_club_api',
+        user='sail', password='password')
     
-    sql_select_Query = "select * from boardgames where components is NULL order by id_bgg desc"
+    sql_select_Query = "select * from boardgames where components is null order by id_ludopedia desc"
     cursor = connection.cursor()
     cursor.execute(sql_select_Query)
     rows = cursor.fetchall()
